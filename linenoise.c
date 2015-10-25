@@ -537,7 +537,7 @@ static size_t unicodePrevGraphemeLen(char* buf, size_t pos)
 
 /* Get column position for the single line mode.
  */
-static size_t unicodeColumnPos(char* buf, size_t buf_len)
+static size_t unicodeColumnPos(const char* buf, size_t buf_len)
 {
     size_t ret = 0;
 
@@ -929,20 +929,20 @@ void refreshShowHints(struct abuf *ab, struct linenoiseState *l, int plen) {
  * cursor position, and number of columns of the terminal. */
 static void refreshSingleLine(struct linenoiseState *l) {
     char seq[64];
-    size_t plen = strlen(l->prompt);
+    size_t pcolwid = unicodeColumnPos(l->prompt, strlen(l->prompt));
     int fd = l->ofd;
     char *buf = l->buf;
     size_t len = l->len;
     size_t pos = l->pos;
     struct abuf ab;
 
-    while((plen+unicodeColumnPos(buf, pos)) >= l->cols) {
+    while((pcolwid+unicodeColumnPos(buf, pos)) >= l->cols) {
         int glen = unicodeGraphemeLen(buf, len, 0);
         buf += glen;
         len -= glen;
         pos -= glen;
     }
-    while (plen+unicodeColumnPos(buf, len) > l->cols) {
+    while (pcolwid+unicodeColumnPos(buf, len) > l->cols) {
         len -= unicodePrevGraphemeLen(buf, len);
     }
 
@@ -959,7 +959,7 @@ static void refreshSingleLine(struct linenoiseState *l) {
     snprintf(seq,64,"\x1b[0K");
     abAppend(&ab,seq,strlen(seq));
     /* Move cursor to original position. */
-    snprintf(seq,64,"\r\x1b[%dC", (int)(unicodeColumnPos(buf, pos)+plen));
+    snprintf(seq,64,"\r\x1b[%dC", (int)(unicodeColumnPos(buf, pos)+pcolwid));
     abAppend(&ab,seq,strlen(seq));
     if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
     abFree(&ab);
@@ -971,11 +971,11 @@ static void refreshSingleLine(struct linenoiseState *l) {
  * cursor position, and number of columns of the terminal. */
 static void refreshMultiLine(struct linenoiseState *l) {
     char seq[64];
-    int plen = strlen(l->prompt);
-    int colpos = unicodeColumnPosForMultiLine(l->buf, l->len, l->len, l->cols, plen);
+    size_t pcolwid = unicodeColumnPos(l->prompt, strlen(l->prompt));
+    int colpos = unicodeColumnPosForMultiLine(l->buf, l->len, l->len, l->cols, pcolwid);
     int colpos2; /* cursor column position. */
-    int rows = (plen+colpos+l->cols-1)/l->cols; /* rows used by current buf. */
-    int rpos = (plen+l->oldcolpos+l->cols)/l->cols; /* cursor relative row. */
+    int rows = (pcolwid+colpos+l->cols-1)/l->cols; /* rows used by current buf. */
+    int rpos = (pcolwid+l->oldcolpos+l->cols)/l->cols; /* cursor relative row. */
     int rpos2; /* rpos after refresh. */
     int col; /* colum position, zero-based. */
     int old_rows = l->maxrows;
@@ -1014,13 +1014,13 @@ static void refreshMultiLine(struct linenoiseState *l) {
     refreshShowHints(&ab,l,plen);
 
     /* Get text width to cursor position */
-    colpos2 = unicodeColumnPosForMultiLine(l->buf, l->len, l->pos, l->cols, plen);
+    colpos2 = unicodeColumnPosForMultiLine(l->buf, l->len, l->pos, l->cols, pcolwid);
 
     /* If we are at the very end of the screen with our prompt, we need to
      * emit a newline and move the prompt to the first column. */
     if (l->pos &&
         l->pos == l->len &&
-        (colpos2+plen) % l->cols == 0)
+        (colpos2+pcolwid) % l->cols == 0)
     {
         lndebug("<newline>");
         abAppend(&ab,"\n",1);
@@ -1031,7 +1031,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     }
 
     /* Move cursor to right position. */
-    rpos2 = (plen+colpos2+l->cols)/l->cols; /* current cursor relative row. */
+    rpos2 = (pcolwid+colpos2+l->cols)/l->cols; /* current cursor relative row. */
     lndebug("rpos2 %d", rpos2);
 
     /* Go up till we reach the expected positon. */
@@ -1042,7 +1042,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     }
 
     /* Set column. */
-    col = (plen + colpos2) % l->cols;
+    col = (pcolwid + colpos2) % l->cols;
     lndebug("set col %d", 1+col);
     if (col)
         snprintf(seq,64,"\r\x1b[%dC", col);
@@ -1076,7 +1076,7 @@ int linenoiseEditInsert(struct linenoiseState *l, const char* cbuf, int clen) {
             l->pos+=clen;
             l->len+=clen;;
             l->buf[l->len] = '\0';
-            if ((!mlmode && l->plen+l->len < l->cols && !hintsCallback)) {
+            if ((!mlmode && unicodeColumnPos(l->prompt,l->plen)+unicodeColumnPos(l->buf,l->len) < l->cols && !hintsCallback)) {
                 /* Avoid a full update of the line in the
                  * trivial case. */
                 if (write(l->ofd,cbuf,clen) == -1) return -1;
