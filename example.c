@@ -6,8 +6,8 @@
 
 void completion(const char *buf, linenoiseCompletions *lc) {
     if (buf[0] == 'h') {
-        linenoiseAddCompletion(lc,"こんにちは");
-        linenoiseAddCompletion(lc,"こんにちは there");
+        linenoiseAddCompletion(lc,"hello こんにちは");
+        linenoiseAddCompletion(lc,"hello こんにちは there");
     }
 }
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
      *
      * The typed string is returned as a malloc() allocated string by
      * linenoise, so the user needs to free() it. */
-    while((line = linenoise("こんにちは> ")) != NULL) {
+    while((line = linenoise("\033[32mこんにちは\x1b[0m> ")) != NULL) {
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '/') {
             printf("echo: '%s'\n", line);

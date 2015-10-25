@@ -535,6 +535,24 @@ static size_t unicodePrevGraphemeLen(char* buf, size_t pos)
     return 0;
 }
 
+static int isAnsiEscape(const char* buf, size_t buf_len, size_t* len)
+{
+    if (buf_len > 2 && !memcmp("\033[", buf, 2)) {
+        size_t off = 2;
+        while (off < buf_len) {
+            switch (buf[off++]) {
+            case 'A': case 'B': case 'C': case 'D':
+            case 'E': case 'F': case 'G': case 'H':
+            case 'J': case 'K': case 'S': case 'T':
+            case 'f': case 'm':
+                *len = off;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 /* Get column position for the single line mode.
  */
 static size_t unicodeColumnPos(const char* buf, size_t buf_len)
@@ -542,9 +560,15 @@ static size_t unicodeColumnPos(const char* buf, size_t buf_len)
     size_t ret = 0;
 
     size_t off = 0;
-    while (off != buf_len) {
+    while (off < buf_len) {
+        size_t len;
+        if (isAnsiEscape(buf + off, buf_len - off, &len)) {
+            off += len;
+            continue;
+        }
+
         int cp;
-        size_t len = unicodeUTF8CharToCodePoint(buf + off, buf_len - off, &cp);
+        len = unicodeUTF8CharToCodePoint(buf + off, buf_len - off, &cp);
 
         if (!unicodeIsCombiningChar(cp)) {
             ret += unicodeIsWideChar(cp) ? 2 : 1;
