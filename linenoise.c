@@ -223,11 +223,11 @@ static size_t defaultNextCharLen(const char *buf, size_t buf_len, size_t pos, si
 }
 
 /* Read bytes of the next character */
-static size_t defaultReadCode(int fd, char *buf, size_t buf_len, int* cp) {
+static size_t defaultReadCode(int fd, char *buf, size_t buf_len, int* c) {
     if (buf_len < 1) { return -1; }
     int nread = read(fd,&buf[0],1);
     if (nread == 1) {
-        *cp = buf[0];
+        *c = buf[0];
     }
     return nread;
 }
