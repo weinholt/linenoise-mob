@@ -352,7 +352,7 @@ size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, siz
 
     int cp;
     size_t len = utf8BytesToCodePoint(buf + pos, buf_len - pos, &cp);
-    *col_len = isWideChar(cp) ? 2 : 1;
+    if (col_len != NULL) *col_len = isWideChar(cp) ? 2 : 1;
 
     pos += len;
     while (pos < buf_len) {
@@ -385,9 +385,8 @@ size_t linenoiseUtf8PrevCharLen(const char* buf, size_t buf_len, size_t pos, siz
         int cp;
         utf8BytesToCodePoint(buf + pos, len, &cp);
 
-        *col_len = 0;
         if (!isCombiningChar(cp)) {
-            *col_len = isWideChar(cp) ? 2 : 1;
+            if (col_len != NULL) *col_len = isWideChar(cp) ? 2 : 1;
             return end - pos;
         }
     }
