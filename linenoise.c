@@ -613,7 +613,7 @@ static int isAnsiEscape(const char *buf, size_t buf_len, size_t* len) {
     return 0;
 }
 
-/* Get column width of prompt text
+/* Get column length of prompt text
  */
 static size_t promptTextColumnLen(const char *prompt, size_t plen) {
     char buf[LINENOISE_MAX_LINE];
@@ -647,10 +647,10 @@ static void refreshSingleLine(struct linenoiseState *l) {
 
     while((pcollen+columnPos(buf,len,pos)) >= l->cols) {
         size_t col_len;
-        int glen = nextCharLen(buf,len,0,&col_len);
-        buf += glen;
-        len -= glen;
-        pos -= glen;
+        int chlen = nextCharLen(buf,len,0,&col_len);
+        buf += chlen;
+        len -= chlen;
+        pos -= chlen;
     }
     while (pcollen+columnPos(buf,len,len) > l->cols) {
         size_t col_len;
@@ -724,7 +724,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     /* Show hits if any. */
     refreshShowHints(&ab,l,plen);
 
-    /* Get text width to cursor position */
+    /* Get column length to cursor position */
     colpos2 = columnPosForMultiLine(l->buf,l->len,l->pos,l->cols,pcollen);
 
     /* If we are at the very end of the screen with our prompt, we need to
@@ -871,9 +871,9 @@ void linenoiseEditHistoryNext(struct linenoiseState *l, int dir) {
 void linenoiseEditDelete(struct linenoiseState *l) {
     if (l->len > 0 && l->pos < l->len) {
         size_t col_len;
-        int glen = nextCharLen(l->buf,l->len,l->pos,&col_len);
-        memmove(l->buf+l->pos,l->buf+l->pos+glen,l->len-l->pos-glen);
-        l->len-=glen;
+        int chlen = nextCharLen(l->buf,l->len,l->pos,&col_len);
+        memmove(l->buf+l->pos,l->buf+l->pos+chlen,l->len-l->pos-chlen);
+        l->len-=chlen;
         l->buf[l->len] = '\0';
         refreshLine(l);
     }
@@ -883,10 +883,10 @@ void linenoiseEditDelete(struct linenoiseState *l) {
 void linenoiseEditBackspace(struct linenoiseState *l) {
     if (l->pos > 0 && l->len > 0) {
         size_t col_len;
-        int glen = prevCharLen(l->buf,l->len,l->pos,&col_len);
-        memmove(l->buf+l->pos-glen,l->buf+l->pos,l->len-l->pos);
-        l->pos-=glen;
-        l->len-=glen;
+        int chlen = prevCharLen(l->buf,l->len,l->pos,&col_len);
+        memmove(l->buf+l->pos-chlen,l->buf+l->pos,l->len-l->pos);
+        l->pos-=chlen;
+        l->len-=chlen;
         l->buf[l->len] = '\0';
         refreshLine(l);
     }
