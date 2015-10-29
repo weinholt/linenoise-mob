@@ -41,16 +41,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <termios.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 
 #define UNUSED(x) (void)(x)
@@ -277,11 +267,8 @@ static unsigned long combiningCharTableSize = sizeof(combiningCharTable) / sizeo
  */
 static int isWideChar(unsigned long cp) {
     size_t i;
-    for (i = 0; i < wideCharTableSize; i++) {
-        if (wideCharTable[i][0] <= cp && cp <= wideCharTable[i][1]) {
-            return 1;
-        }
-    }
+    for (i = 0; i < wideCharTableSize; i++)
+        if (wideCharTable[i][0] <= cp && cp <= wideCharTable[i][1]) return 1;
     return 0;
 }
 
@@ -289,11 +276,8 @@ static int isWideChar(unsigned long cp) {
  */
 static int isCombiningChar(unsigned long cp) {
     size_t i;
-    for (i = 0; i < combiningCharTableSize; i++) {
-        if (combiningCharTable[i] == cp) {
-            return 1;
-        }
-    }
+    for (i = 0; i < combiningCharTableSize; i++)
+        if (combiningCharTable[i] == cp) return 1;
     return 0;
 }
 
@@ -301,9 +285,8 @@ static int isCombiningChar(unsigned long cp) {
  */
 static size_t prevUtf8CharLen(const char* buf, int pos) {
     int end = pos--;
-    while (pos >= 0 && ((unsigned char)buf[pos] & 0xC0) == 0x80) {
+    while (pos >= 0 && ((unsigned char)buf[pos] & 0xC0) == 0x80)
         pos--;
-    }
     return end - pos;
 }
 
@@ -344,25 +327,16 @@ static size_t utf8BytesToCodePoint(const char* buf, size_t len, int* cp) {
 /* Get length of next grapheme
  */
 size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len) {
-    if (pos == buf_len) {
-        return 0;
-    }
-
+    if (pos == buf_len) return 0;
     size_t beg = pos;
-
     int cp;
     size_t len = utf8BytesToCodePoint(buf + pos, buf_len - pos, &cp);
     if (col_len != NULL) *col_len = isWideChar(cp) ? 2 : 1;
-
     pos += len;
     while (pos < buf_len) {
         int cp;
         len = utf8BytesToCodePoint(buf + pos, buf_len - pos, &cp);
-
-        if (!isCombiningChar(cp)) {
-            return pos - beg;
-        }
-
+        if (!isCombiningChar(cp)) return pos - beg;
         pos += len;
     }
     return pos - beg;
@@ -372,52 +346,43 @@ size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, siz
  */
 size_t linenoiseUtf8PrevCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len) {
     UNUSED(buf_len);
-
-    if (pos == 0) {
-        return 0;
-    }
-
+    if (pos == 0) return 0;
     size_t end = pos;
     while (pos > 0) {
         size_t len = prevUtf8CharLen(buf, pos);
         pos -= len;
-
         int cp;
         utf8BytesToCodePoint(buf + pos, len, &cp);
-
         if (!isCombiningChar(cp)) {
             if (col_len != NULL) *col_len = isWideChar(cp) ? 2 : 1;
             return end - pos;
         }
     }
-
     return 0;
 }
 
 /* Read a Unicode from file.
  */
 size_t linenoiseUtf8ReadCode(int fd, char* buf, size_t buf_len, int* cp) {
-    if (buf_len < 1) { return -1; }
+    if (buf_len < 1) return -1;
     size_t nread = read(fd,&buf[0],1);
-
-    if (nread <= 0) { return nread; }
+    if (nread <= 0) return nread;
 
     unsigned char byte = buf[0];
-
     if ((byte & 0x80) == 0) {
         ;
     } else if ((byte & 0xE0) == 0xC0) {
-        if (buf_len < 2) { return -1; }
+        if (buf_len < 2) return -1;
         nread = read(fd,&buf[1],1);
-        if (nread <= 0) { return nread; }
+        if (nread <= 0) return nread;
     } else if ((byte & 0xF0) == 0xE0) {
-        if (buf_len < 3) { return -1; }
+        if (buf_len < 3) return -1;
         nread = read(fd,&buf[1],2);
-        if (nread <= 0) { return nread; }
+        if (nread <= 0) return nread;
     } else if ((byte & 0xF8) == 0xF0) {
-        if (buf_len < 3) { return -1; }
+        if (buf_len < 3) return -1;
         nread = read(fd,&buf[1],3);
-        if (nread <= 0) { return nread; }
+        if (nread <= 0) return nread;
     } else {
         return -1;
     }
