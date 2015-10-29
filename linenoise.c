@@ -199,6 +199,7 @@ FILE *lndebug_fp = NULL;
 
 #define UNUSED(x) (void)(x)
 
+/* Get byte length and column length of the previous character */
 static size_t defaultPrevCharLen(const char *buf, size_t buf_len, size_t pos, size_t *col_len) {
     UNUSED(buf);
     UNUSED(buf_len);
@@ -210,6 +211,7 @@ static size_t defaultPrevCharLen(const char *buf, size_t buf_len, size_t pos, si
     return 1;
 }
 
+/* Get byte length and column length of the next character */
 static size_t defaultNextCharLen(const char *buf, size_t buf_len, size_t pos, size_t *col_len) {
     UNUSED(buf);
     if (pos == buf_len) {
@@ -220,6 +222,7 @@ static size_t defaultNextCharLen(const char *buf, size_t buf_len, size_t pos, si
     return 1;
 }
 
+/* Read bytes of the next character */
 static size_t defaultReadCode(int fd, char *buf, size_t buf_len, int* cp) {
     if (buf_len < 1) { return -1; }
     int nread = read(fd,&buf[0],1);
@@ -229,10 +232,14 @@ static size_t defaultReadCode(int fd, char *buf, size_t buf_len, int* cp) {
     return nread;
 }
 
+#undef UNUSED
+
+/* Set default encoding functions */
 static linenoisePrevCharLen *prevCharLen = defaultPrevCharLen;
 static linenoiseNextCharLen *nextCharLen = defaultNextCharLen;
 static linenoiseReadCode *readCode = defaultReadCode;
 
+/* Set used defined encoding functions */
 void linenoiseSetEncodingFunctions(
     linenoisePrevCharLen *prevCharLenFunc,
     linenoiseNextCharLen *nextCharLenFunc,
@@ -242,6 +249,7 @@ void linenoiseSetEncodingFunctions(
     readCode = readCodeFunc;
 }
 
+/* Get column length from begining of buffer to current byte position */
 static size_t columnPos(const char *buf, size_t buf_len, size_t pos) {
     size_t ret = 0;
     size_t off = 0;
@@ -254,6 +262,7 @@ static size_t columnPos(const char *buf, size_t buf_len, size_t pos) {
     return ret;
 }
 
+/* Get column length from begining of buffer to current byte position for multiline mode*/
 static size_t columnPosForMultiLine(const char *buf, size_t buf_len, size_t pos, size_t cols, size_t ini_pos) {
     size_t ret = 0;
     size_t colwid = ini_pos;
@@ -606,7 +615,7 @@ static int isAnsiEscape(const char *buf, size_t buf_len, size_t* len) {
 
 /* Get column width of prompt text
  */
-static size_t promptTextColumnWidth(const char *prompt, size_t plen) {
+static size_t promptTextColumnLen(const char *prompt, size_t plen) {
     char buf[LINENOISE_MAX_LINE];
     size_t buf_len = 0;
 
@@ -629,21 +638,21 @@ static size_t promptTextColumnWidth(const char *prompt, size_t plen) {
  * cursor position, and number of columns of the terminal. */
 static void refreshSingleLine(struct linenoiseState *l) {
     char seq[64];
-    size_t pcolwid = promptTextColumnWidth(l->prompt, strlen(l->prompt));
+    size_t pcollen = promptTextColumnLen(l->prompt, strlen(l->prompt));
     int fd = l->ofd;
     char *buf = l->buf;
     size_t len = l->len;
     size_t pos = l->pos;
     struct abuf ab;
 
-    while((pcolwid+columnPos(buf,len,pos)) >= l->cols) {
+    while((pcollen+columnPos(buf,len,pos)) >= l->cols) {
         size_t col_len;
         int glen = nextCharLen(buf,len,0,&col_len);
         buf += glen;
         len -= glen;
         pos -= glen;
     }
-    while (pcolwid+columnPos(buf,len,len) > l->cols) {
+    while (pcollen+columnPos(buf,len,len) > l->cols) {
         size_t col_len;
         len -= prevCharLen(buf,len,len,&col_len);
     }
@@ -661,7 +670,7 @@ static void refreshSingleLine(struct linenoiseState *l) {
     snprintf(seq,64,"\x1b[0K");
     abAppend(&ab,seq,strlen(seq));
     /* Move cursor to original position. */
-    snprintf(seq,64,"\r\x1b[%dC", (int)(columnPos(buf,len,pos)+pcolwid));
+    snprintf(seq,64,"\r\x1b[%dC", (int)(columnPos(buf,len,pos)+pcollen));
     abAppend(&ab,seq,strlen(seq));
     if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
     abFree(&ab);
@@ -673,11 +682,11 @@ static void refreshSingleLine(struct linenoiseState *l) {
  * cursor position, and number of columns of the terminal. */
 static void refreshMultiLine(struct linenoiseState *l) {
     char seq[64];
-    size_t pcolwid = promptTextColumnWidth(l->prompt, strlen(l->prompt));
-    int colpos = columnPosForMultiLine(l->buf, l->len, l->len, l->cols, pcolwid);
+    size_t pcollen = promptTextColumnLen(l->prompt, strlen(l->prompt));
+    int colpos = columnPosForMultiLine(l->buf, l->len, l->len, l->cols, pcollen);
     int colpos2; /* cursor column position. */
-    int rows = (pcolwid+colpos+l->cols-1)/l->cols; /* rows used by current buf. */
-    int rpos = (pcolwid+l->oldcolpos+l->cols)/l->cols; /* cursor relative row. */
+    int rows = (pcollen+colpos+l->cols-1)/l->cols; /* rows used by current buf. */
+    int rpos = (pcollen+l->oldcolpos+l->cols)/l->cols; /* cursor relative row. */
     int rpos2; /* rpos after refresh. */
     int col; /* colum position, zero-based. */
     int old_rows = l->maxrows;
@@ -716,13 +725,13 @@ static void refreshMultiLine(struct linenoiseState *l) {
     refreshShowHints(&ab,l,plen);
 
     /* Get text width to cursor position */
-    colpos2 = columnPosForMultiLine(l->buf, l->len, l->pos, l->cols, pcolwid);
+    colpos2 = columnPosForMultiLine(l->buf,l->len,l->pos,l->cols,pcollen);
 
     /* If we are at the very end of the screen with our prompt, we need to
      * emit a newline and move the prompt to the first column. */
     if (l->pos &&
         l->pos == l->len &&
-        (colpos2+pcolwid) % l->cols == 0)
+        (colpos2+pcollen) % l->cols == 0)
     {
         lndebug("<newline>");
         abAppend(&ab,"\n",1);
@@ -733,7 +742,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     }
 
     /* Move cursor to right position. */
-    rpos2 = (pcolwid+colpos2+l->cols)/l->cols; /* current cursor relative row. */
+    rpos2 = (pcollen+colpos2+l->cols)/l->cols; /* current cursor relative row. */
     lndebug("rpos2 %d", rpos2);
 
     /* Go up till we reach the expected positon. */
@@ -744,7 +753,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     }
 
     /* Set column. */
-    col = (pcolwid + colpos2) % l->cols;
+    col = (pcollen + colpos2) % l->cols;
     lndebug("set col %d", 1+col);
     if (col)
         snprintf(seq,64,"\r\x1b[%dC", col);
@@ -778,11 +787,7 @@ int linenoiseEditInsert(struct linenoiseState *l, const char *cbuf, int clen) {
             l->pos+=clen;
             l->len+=clen;;
             l->buf[l->len] = '\0';
-<<<<<<< 261a8ea88752edfef03d6d803ff2dab504edefe7
-            if ((!mlmode && unicodeColumnPos(l->prompt,l->plen)+unicodeColumnPos(l->buf,l->len) < l->cols && !hintsCallback)) {
-=======
-            if ((!mlmode && promptTextColumnWidth(l->prompt,l->plen)+columnPos(l->buf,l->len,l->len) < l->cols) /* || mlmode */) {
->>>>>>> Isolated UTF-8 encoding code from linenoise.
+            if ((!mlmode && promptTextColumnLen(l->prompt,l->plen)+columnPos(l->buf,l->len,l->len) < l->cols && !hintsCallback)) {
                 /* Avoid a full update of the line in the
                  * trivial case. */
                 if (write(l->ofd,cbuf,clen) == -1) return -1;
