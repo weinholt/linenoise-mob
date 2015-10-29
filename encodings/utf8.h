@@ -43,11 +43,9 @@
 extern "C" {
 #endif
 
-size_t linenoiseUtf8PrevCharLen(const char* buf, size_t pos);
-size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos);
-size_t linenoiseUtf8ColumnPos(const char* buf, size_t buf_len, size_t pos);
-size_t linenoiseUtf8ColumnPosForMultiLine(const char* buf, size_t buf_len, size_t pos, size_t cols, size_t ini_pos);
-size_t linenoiseUtf8ReadCode(int fd, char* buf, int* cp);
+size_t linenoiseUtf8PrevCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len);
+size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len);
+size_t linenoiseUtf8ReadCode(int fd, char* buf, size_t buf_len, int* cp);
 
 #ifdef __cplusplus
 }

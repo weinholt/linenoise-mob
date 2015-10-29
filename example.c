@@ -54,8 +54,6 @@ int main(int argc, char **argv) {
     linenoiseSetEncodingFunctions(
         linenoiseUtf8PrevCharLen,
         linenoiseUtf8NextCharLen,
-        linenoiseUtf8ColumnPos,
-        linenoiseUtf8ColumnPosForMultiLine,
         linenoiseUtf8ReadCode);
 #endif
 
