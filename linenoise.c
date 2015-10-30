@@ -200,23 +200,14 @@ FILE *lndebug_fp = NULL;
 
 /* Get byte length and column length of the previous character */
 static size_t defaultPrevCharLen(const char *buf, size_t buf_len, size_t pos, size_t *col_len) {
-    UNUSED(buf);
-    UNUSED(buf_len);
-    if (pos == 0) {
-        if (col_len != NULL) *col_len = 0;
-        return 0;
-    }
+    UNUSED(buf); UNUSED(buf_len); UNUSED(pos);
     if (col_len != NULL) *col_len = 1;
     return 1;
 }
 
 /* Get byte length and column length of the next character */
 static size_t defaultNextCharLen(const char *buf, size_t buf_len, size_t pos, size_t *col_len) {
-    UNUSED(buf);
-    if (pos == buf_len) {
-        if (col_len != NULL) *col_len = 0;
-        return 0;
-    }
+    UNUSED(buf); UNUSED(buf_len); UNUSED(pos);
     if (col_len != NULL) *col_len = 1;
     return 1;
 }

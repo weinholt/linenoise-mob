@@ -42,6 +42,7 @@
  */
 
 #include <unistd.h>
+#include <stdio.h>
 
 #define UNUSED(x) (void)(x)
 
@@ -327,10 +328,13 @@ static size_t utf8BytesToCodePoint(const char* buf, size_t len, int* cp) {
 /* Get length of next grapheme
  */
 size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len) {
-    if (pos == buf_len) return 0;
     size_t beg = pos;
     int cp;
     size_t len = utf8BytesToCodePoint(buf + pos, buf_len - pos, &cp);
+    if (isCombiningChar(cp)) {
+        /* NOTREACHED */
+        return 0;
+    }
     if (col_len != NULL) *col_len = isWideChar(cp) ? 2 : 1;
     pos += len;
     while (pos < buf_len) {
@@ -346,7 +350,6 @@ size_t linenoiseUtf8NextCharLen(const char* buf, size_t buf_len, size_t pos, siz
  */
 size_t linenoiseUtf8PrevCharLen(const char* buf, size_t buf_len, size_t pos, size_t *col_len) {
     UNUSED(buf_len);
-    if (pos == 0) return 0;
     size_t end = pos;
     while (pos > 0) {
         size_t len = prevUtf8CharLen(buf, pos);
@@ -358,6 +361,7 @@ size_t linenoiseUtf8PrevCharLen(const char* buf, size_t buf_len, size_t pos, siz
             return end - pos;
         }
     }
+    /* NOTREACHED */
     return 0;
 }
 
