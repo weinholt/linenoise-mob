@@ -428,11 +428,10 @@ static void freeCompletions(linenoiseCompletions *lc) {
  *
  * The state of the editing is encapsulated into the pointed linenoiseState
  * structure as described in the structure definition. */
-static int completeLine(struct linenoiseState *ls) {
+static int completeLine(struct linenoiseState *ls, char *cbuf, size_t cbuf_len, int *c) {
     linenoiseCompletions lc = { 0, NULL };
-    int nread, nwritten;
-    int c = 0;
-    char cbuf[32]; // large enough for any encoding?
+    int nread = 0, nwritten;
+    *c = 0;
 
     completionCallback(ls->buf,&lc);
     if (lc.len == 0) {
@@ -455,13 +454,14 @@ static int completeLine(struct linenoiseState *ls) {
                 refreshLine(ls);
             }
 
-            nread = readCode(ls->ifd,cbuf,sizeof(cbuf),&c);
+            nread = readCode(ls->ifd,cbuf,cbuf_len,c);
             if (nread <= 0) {
                 freeCompletions(&lc);
-                return -1;
+                *c = -1;
+                return nread;
             }
 
-            switch(c) {
+            switch(*c) {
                 case 9: /* tab */
                     i = (i+1) % (lc.len+1);
                     if (i == lc.len) linenoiseBeep();
@@ -484,7 +484,7 @@ static int completeLine(struct linenoiseState *ls) {
     }
 
     freeCompletions(&lc);
-    return c; /* Return last read character */
+    return nread;
 }
 
 /* Register a callback function to be called for tab-completion. */
@@ -930,7 +930,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
          * there was an error reading from fd. Otherwise it will return the
          * character that should be handled next. */
         if (c == 9 && completionCallback != NULL) {
-            c = completeLine(&l);
+            nread = completeLine(&l,cbuf,sizeof(cbuf),&c);
             /* Return on errors */
             if (c < 0) return l.len;
             /* Read next character when 0 */
