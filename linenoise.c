@@ -555,14 +555,15 @@ static void abFree(struct abuf *ab) {
 
 /* Helper of refreshSingleLine() and refreshMultiLine() to show hints
  * to the right of the prompt. */
-void refreshShowHints(struct abuf *ab, struct linenoiseState *l, int plen) {
+void refreshShowHints(struct abuf *ab, struct linenoiseState *l, int pcollen) {
     char seq[64];
-    if (hintsCallback && plen+l->len < l->cols) {
+    size_t collen = pcollen+columnPos(l->buf,l->len,l->len);
+    if (hintsCallback && collen < l->cols) {
         int color = -1, bold = 0;
         char *hint = hintsCallback(l->buf,&color,&bold);
         if (hint) {
             int hintlen = strlen(hint);
-            int hintmaxlen = l->cols-(plen+l->len);
+            int hintmaxlen = l->cols-collen;
             if (hintlen > hintmaxlen) hintlen = hintmaxlen;
             if (bold == 1 && color == -1) color = 37;
             if (color != -1 || bold != 0)
@@ -643,7 +644,7 @@ static void refreshSingleLine(struct linenoiseState *l) {
     abAppend(&ab,l->prompt,strlen(l->prompt));
     abAppend(&ab,buf,len);
     /* Show hits if any. */
-    refreshShowHints(&ab,l,plen);
+    refreshShowHints(&ab,l,pcollen);
     /* Erase to right */
     snprintf(seq,64,"\x1b[0K");
     abAppend(&ab,seq,strlen(seq));
@@ -700,7 +701,7 @@ static void refreshMultiLine(struct linenoiseState *l) {
     abAppend(&ab,l->buf,l->len);
 
     /* Show hits if any. */
-    refreshShowHints(&ab,l,plen);
+    refreshShowHints(&ab,l,pcollen);
 
     /* Get column length to cursor position */
     colpos2 = columnPosForMultiLine(l->buf,l->len,l->pos,l->cols,pcollen);
