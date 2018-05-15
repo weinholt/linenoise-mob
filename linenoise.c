@@ -945,6 +945,12 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                         case 'd': /* End*/
                             linenoiseEditDeleteNextWord(&l);
                             break;
+                        case '1': /* Home */
+                            linenoiseEditMoveHome(&l);
+                            break;
+                        case '4': /* End */
+                            linenoiseEditMoveEnd(&l);
+                            break;
                         }
                     }
                 }
