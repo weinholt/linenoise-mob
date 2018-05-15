@@ -2,10 +2,10 @@ PREFIX = /usr/local
 CC = cc
 CFLAGS = -Os -Wall -Wextra
 
-SRC = linenoise.c
+SRC = linenoise.c utf8.c
 OBJ = $(SRC:.c=.o)
 LIB = liblinenoise.a
-INC = linenoise.h
+INC = linenoise.h utf8.h
 MAN = linenoise.3
 
 all: $(LIB) example
@@ -28,8 +28,8 @@ install: $(LIB) $(INC) $(MAN)
 	cp $(MAN) $(DESTDIR)$(PREFIX)/share/man/man3/$(MAN)
 
 lib: linenoise.h linenoise.c
-	$(CC) -Wall -W -Os -o linenoise.o linenoise.c
-	ar rcs liblinenoise.a linenoise.o
+	$(CC) -Wall -W -Os -o linenoise.o linenoise.c encodings/utf8.c
+	ar rcs liblinenoise.a linenoise.o utf8.o
 
 clean:
 	rm -f $(LIB) example example.o $(OBJ)
