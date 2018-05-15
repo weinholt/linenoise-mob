@@ -682,7 +682,7 @@ int linenoiseEditInsert(struct linenoiseState *l, char c) {
                 /* Avoid a full update of the line in the
                  * trivial case. */
                 char charc = (char)c;
-                if (write(l->fd,&charc,1) == -1) return -1;
+                if (write(l->ifd,&charc,1) == -1) return -1;
             } else {
                 refreshLine(l);
             }
@@ -995,14 +995,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                         case '4': /* End */
                             linenoiseEditMoveEnd(&l);
                             break;
-
-                        case '1': /* Home key. */
-                            linenoiseEditMoveHome(&l);
-                            break;
-
-                        case '4': /* End key. */
-                            linenoiseEditMoveEnd(&l);
-                            break;                            
                         }
                     }
                 }
