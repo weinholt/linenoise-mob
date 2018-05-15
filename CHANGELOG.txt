@@ -1,5 +1,5 @@
 Tue May 15 16:45:32 UTC 2018
 * Create CHANGELOG
-* Merged PRs #151, #147, #144
+* Merged PRs #151, #147, #144, #139
 
 
