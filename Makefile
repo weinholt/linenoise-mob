@@ -27,5 +27,9 @@ install: $(LIB) $(INC) $(MAN)
 	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man3
 	cp $(MAN) $(DESTDIR)$(PREFIX)/share/man/man3/$(MAN)
 
+lib: linenoise.h linenoise.c
+	$(CC) -Wall -W -Os -o linenoise.o linenoise.c
+	ar rcs liblinenoise.a linenoise.o
+
 clean:
 	rm -f $(LIB) example example.o $(OBJ)
