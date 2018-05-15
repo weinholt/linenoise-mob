@@ -1,2 +1,3 @@
 Tue May 15 16:45:32 UTC 2018
 * Create CHANGELOG
+* Merged PR #151
