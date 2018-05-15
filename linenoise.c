@@ -668,7 +668,8 @@ int linenoiseEditInsert(struct linenoiseState *l, char c) {
             if ((!mlmode && l->plen+l->len < l->cols && !hintsCallback)) {
                 /* Avoid a full update of the line in the
                  * trivial case. */
-                if (write(l->ofd,&c,1) == -1) return -1;
+                char charc = (char)c;
+                if (write(l->fd,&charc,1) == -1) return -1;
             } else {
                 refreshLine(l);
             }
@@ -857,10 +858,12 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
          * character that should be handled next. */
         if (c == TAB && completionCallback != NULL) {
             c = completeLine(&l);
+            int cint = completeLine(&l);
             /* Return on errors */
-            if (c < 0) return l.len;
+            if (cint < 0) return l.len;
             /* Read next character when 0 */
-            if (c == KEY_NULL) continue;
+            if (cint == 0) continue;
+            c = (char)cint;
         }
 
         switch(c) {
