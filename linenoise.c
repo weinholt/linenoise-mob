@@ -566,7 +566,7 @@ void linenoiseAddHistoryCompletions(const char* buf, linenoiseCompletions *lc) {
  * output in a single call, to avoid flickering effects. */
 struct abuf {
     char *b;
-    int len;
+    unsigned int len;
 };
 
 static void abInit(struct abuf *ab) {
@@ -574,7 +574,7 @@ static void abInit(struct abuf *ab) {
     ab->len = 0;
 }
 
-static void abAppend(struct abuf *ab, const char *s, int len) {
+static void abAppend(struct abuf *ab, const char *s, unsigned int len) {
     char *new = realloc(ab->b,ab->len+len);
 
     if (new == NULL) return;
