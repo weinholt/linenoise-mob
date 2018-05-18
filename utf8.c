@@ -432,6 +432,7 @@ static size_t utf8BytesToCodePoint(const char* buf, size_t len, int* cp) {
             }
         }
     }
+    *cp = 0;
     return 0;
 }
 
