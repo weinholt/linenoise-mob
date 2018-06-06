@@ -378,9 +378,15 @@ static unsigned long combiningCharTableSize = sizeof(combiningCharTable) / sizeo
  */
 static int isWideChar(unsigned long cp) {
     size_t i;
-    if(cp < wideCharTable[0][0]) return 0;  /* fast bail for latin text */
-    for (i = 0; i < wideCharTableSize; i++)
+    for (i = 0; i < wideCharTableSize; i++) {
+        /* ranges are listed in ascending order.  Therefore, once the
+         * whole range is higher than the codepoint we're testing, the
+         * codepoint won't be found in any remaining range => bail early. */
+        if(wideCharTable[i][0] > cp) return 0;
+
+        /* test this range */
         if (wideCharTable[i][0] <= cp && cp <= wideCharTable[i][1]) return 1;
+    }
     return 0;
 }
 
@@ -388,9 +394,12 @@ static int isWideChar(unsigned long cp) {
  */
 static int isCombiningChar(unsigned long cp) {
     size_t i;
-    if(cp < combiningCharTable[0]) return 0;  /* fast bail for latin text */
-    for (i = 0; i < combiningCharTableSize; i++)
+    for (i = 0; i < combiningCharTableSize; i++) {
+        /* combining chars are listed in ascending order, so once we pass
+         * the codepoint of interest, we know it's not a combining char. */
+        if(combiningCharTable[i] > cp) return 0;
         if (combiningCharTable[i] == cp) return 1;
+    }
     return 0;
 }
 
