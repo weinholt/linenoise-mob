@@ -48,7 +48,7 @@
 
 /* ============================ UTF8 utilities ============================== */
 
-static unsigned long wideCharTable[][2] = {
+static unsigned long wideCharTable[][2] = {     /* list in ascending order */
     { 0x1100, 0x115F },
     { 0x231A, 0x231B },
     { 0x2329, 0x232A },
@@ -157,7 +157,7 @@ static unsigned long wideCharTable[][2] = {
 
 static size_t wideCharTableSize = sizeof(wideCharTable) / sizeof(wideCharTable[0]);
 
-static unsigned long combiningCharTable[] = {
+static unsigned long combiningCharTable[] = {   /* list in ascending order */
     0x0300,0x0301,0x0302,0x0303,0x0304,0x0305,0x0306,0x0307,
     0x0308,0x0309,0x030A,0x030B,0x030C,0x030D,0x030E,0x030F,
     0x0310,0x0311,0x0312,0x0313,0x0314,0x0315,0x0316,0x0317,
@@ -378,8 +378,15 @@ static unsigned long combiningCharTableSize = sizeof(combiningCharTable) / sizeo
  */
 static int isWideChar(unsigned long cp) {
     size_t i;
-    for (i = 0; i < wideCharTableSize; i++)
+    for (i = 0; i < wideCharTableSize; i++) {
+        /* ranges are listed in ascending order.  Therefore, once the
+         * whole range is higher than the codepoint we're testing, the
+         * codepoint won't be found in any remaining range => bail early. */
+        if(wideCharTable[i][0] > cp) return 0;
+
+        /* test this range */
         if (wideCharTable[i][0] <= cp && cp <= wideCharTable[i][1]) return 1;
+    }
     return 0;
 }
 
@@ -387,8 +394,12 @@ static int isWideChar(unsigned long cp) {
  */
 static int isCombiningChar(unsigned long cp) {
     size_t i;
-    for (i = 0; i < combiningCharTableSize; i++)
+    for (i = 0; i < combiningCharTableSize; i++) {
+        /* combining chars are listed in ascending order, so once we pass
+         * the codepoint of interest, we know it's not a combining char. */
+        if(combiningCharTable[i] > cp) return 0;
         if (combiningCharTable[i] == cp) return 1;
+    }
     return 0;
 }
 
