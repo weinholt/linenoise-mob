@@ -420,7 +420,10 @@ static int strlenPerceived(const char* str) {
 
 /* Clear the screen. Used to handle ctrl+l */
 void linenoiseClearScreen(void) {
-    if (write(STDOUT_FILENO,"\x1b[H\x1b[2J",7) <= 0) {
+    int fd;
+
+    fd = isatty(STDOUT_FILENO) ? STDOUT_FILENO : STDERR_FILENO;
+    if (write(fd,"\x1b[H\x1b[2J",7) <= 0) {
         /* nothing to do, just to avoid warning. */
     }
 }
@@ -1198,18 +1201,21 @@ void linenoisePrintKeyCodes(void) {
 
 /* This function calls the line editing function linenoiseEdit() using
  * the STDIN file descriptor set in raw mode. */
-static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
-    int count;
+static int linenoiseRaw(char *buf, FILE *out, size_t buflen, const char *prompt) {
+    int outfd, count;
 
     if (buflen == 0) {
         errno = EINVAL;
         return -1;
     }
 
+    if ((outfd = fileno(out)) == -1)
+        return -1;
+
     if (enableRawMode(STDIN_FILENO) == -1) return -1;
-    count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt);
+    count = linenoiseEdit(STDIN_FILENO, outfd, buf, buflen, prompt);
     disableRawMode(STDIN_FILENO);
-    printf("\n");
+    fprintf(out, "\n");
     return count;
 }
 
@@ -1257,8 +1263,10 @@ static char *linenoiseNoTTY(void) {
  * something even in the most desperate of the conditions. */
 char *linenoise(const char *prompt) {
     char buf[LINENOISE_MAX_LINE];
+    FILE *stream;
     int count;
 
+    stream = isatty(STDOUT_FILENO) ? stdout : stderr;
     if (!isatty(STDIN_FILENO)) {
         /* Not a tty: read from file / pipe. In this mode we don't want any
          * limit to the line size, so we call a function to handle that. */
@@ -1266,8 +1274,8 @@ char *linenoise(const char *prompt) {
     } else if (isUnsupportedTerm()) {
         size_t len;
 
-        printf("%s",prompt);
-        fflush(stdout);
+        fprintf(stream, "%s",prompt);
+        fflush(stream);
         if (fgets(buf,LINENOISE_MAX_LINE,stdin) == NULL) return NULL;
         len = strlen(buf);
         while(len && (buf[len-1] == '\n' || buf[len-1] == '\r')) {
@@ -1276,7 +1284,7 @@ char *linenoise(const char *prompt) {
         }
         return strdup(buf);
     } else {
-        count = linenoiseRaw(buf,LINENOISE_MAX_LINE,prompt);
+        count = linenoiseRaw(buf,stream,LINENOISE_MAX_LINE,prompt);
         if (count == -1) return NULL;
         return strdup(buf);
     }
