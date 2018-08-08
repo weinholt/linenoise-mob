@@ -43,6 +43,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define UNUSED(x) (void)(x)
 
@@ -442,9 +443,13 @@ static size_t utf8BytesToCodePoint(const char* buf, size_t len, int* cp) {
                 return 4;
             }
         }
+        else {
+            *cp = 0xFFFD;
+            return 1;
+        }
     }
     *cp = 0;
-    return 0;
+    return 1;
 }
 
 /* Get length of next grapheme
