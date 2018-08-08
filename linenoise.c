@@ -1046,12 +1046,29 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             }
             break;
         case CTRL_T:    /* ctrl-t, swaps current character with previous. */
-            if (l.pos > 0 && l.pos < l.len) {
-                int aux = buf[l.pos-1];
-                buf[l.pos-1] = buf[l.pos];
-                buf[l.pos] = aux;
-                if (l.pos != l.len-1) l.pos++;
-                refreshLine(&l);
+            {
+              int pcl, ncl;
+              char auxb[5];
+              
+ 	      pcl = prevCharLen(l.buf,l.len,l.pos,NULL);
+	      ncl = nextCharLen(l.buf,l.len,l.pos,NULL);
+//            printf("[%d %d %d]\n", pcl, l.pos, ncl);
+	      // to perform a swap we need
+              // * nonzero char length to the left
+              // * not at the end of the line
+              if(pcl != 0 && l.pos != l.len && pcl < 5 && ncl < 5) {
+		// the actual transpose works like this
+		//
+		//           ,--- l.pos
+		//          v
+		// xxx [AAA] [BB] xxx
+		// xxx [BB] [AAA] xxx
+		memcpy(auxb, l.buf+l.pos-pcl, pcl);
+		memcpy(l.buf+l.pos-pcl, l.buf+l.pos, ncl);
+		memcpy(l.buf+l.pos-pcl+ncl, auxb, pcl);
+		l.pos += -pcl+ncl;
+		refreshLine(&l);
+              }
             }
             break;
         case CTRL_B:     /* ctrl-b */
