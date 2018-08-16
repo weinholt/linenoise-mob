@@ -2,16 +2,27 @@
 (import (akku format manifest))
 
 (akku-package ("linenoise" "1.0.0")
-  (synopsis "Readline replacement via FFI")
+  (synopsis "Readline replacement via PFFI")
+  (description
+   "A minimal, zero-config, BSD licensed, readline replacement."
+   "* Single and multi line editing mode with the usual key bindings implemented."
+   "* History handling."
+   "* Completion."
+   "* Hints (suggestions at the right of the prompt as you type)."
+   "* About 1,100 lines of BSD license source code."
+   "* Only uses a subset of VT100 escapes (ANSI.SYS compatible)."
+   "* UTF-8 support."
+   "This package requires Akku.scm >= 0.4.0 and a Scheme compatible with PFFI.")
   (authors "Salvatore Sanfilippo"
            "Pieter Noordhuis"
            "Göran Weinholt")
   (license "BSD-2-Clause")
   (depends ("r6rs-pffi" "^0.1.0-18.6.21.akku.1"))
-  ;; This feature is planned for Akku 0.4.0
   (scripts
    (cond-expand
     ((and linux pre-install)
      (run "cc -Wall -Os -g -fPIC -shared -o liblinenoise.so linenoise.c utf8.c"))
     ((and osx pre-install)
-     (run "cc -dynamiclib -o liblinenoise.so linenoise.c utf8.c")))))
+     (run "cc -dynamiclib -o liblinenoise.so linenoise.c utf8.c"))
+    (post-install
+     (run "cp liblinenoise.so \"$akku_path_lib_ffi\"")))))
